@@ -32,6 +32,7 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_REGISTRY_URL }}:frontend
           cache-from: type=gha  # gha = Guthub Actions 용 캐시
           cache-to: type=gha,mode=max
+          load: true  # containerd 이미지 스토어를 활성화
 
       - name: Deploy Frontend In WEB EC2
         uses: appleboy/ssh-action@master
