@@ -17,12 +17,10 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Touch .env
+        env:
+          APPLICATION: ${{ secrets.ENV }}
         run: |
-          touch ./.env
-          echo "${{ secrets.KAKAO_REST_API_KEY }}" >> ./.env
-          echo "${{ secrets.NEXT_PUBLIC_KAKAO_JAVASCRIPT_KEY }}" >> ./.env
-          echo "${{ secrets.CLOUD_FLARE_API_KEY }}" >> ./.env
-          echo "${{ secrets.CLOUD_FLARE_ACCOUNT_ID }}" >> ./.env
+          echo $APPLICATION >> ./.env
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
