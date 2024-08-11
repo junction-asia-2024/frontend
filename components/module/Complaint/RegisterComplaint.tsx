@@ -2,6 +2,9 @@ import styled from '@emotion/styled';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import Image from 'next/image';
+import { useMutation } from '@tanstack/react-query';
+import customAxios from '@/lib/axios';
+import toast from 'react-hot-toast';
 
 type RegisterComplaintProps = {
   state: FlowState;
@@ -22,6 +25,32 @@ const RegisterComplaint = ({
     'idle',
   );
   const router = useRouter();
+
+  const updateMutation = useMutation({
+    mutationFn: () => {
+      return customAxios({
+        method: 'POST',
+        url: `/api/complaints/add/${context.id}`,
+        data: {
+          phone: context.phone,
+          description: context.description,
+        },
+      }).then((res) => res.data);
+    },
+    onSuccess: (data) => {
+      if (data) {
+        toast.success(
+          '상세 민원이 등록되었습니다 😊 입력한 전화번호로 연락드리겠습니다.',
+        );
+        next();
+      } else {
+        toast.error('상세 민원 등록에 실패했어요. 다시 시도해 주세요.');
+      }
+    },
+    onError: (error) => {
+      toast.error('상세 민원 등록에 실패했어요. 다시 시도해 주세요.');
+    },
+  });
 
   if (registerState === 'register') {
     return (
@@ -86,8 +115,10 @@ const RegisterComplaint = ({
           </div>
         </div>
         <Button
-          onClick={() => {
+          onClick={async () => {
             router.push('/');
+
+            await updateMutation.mutate();
           }}
         >
           민원 접수하기
@@ -147,6 +178,7 @@ const RegisterComplaint = ({
             width={242}
             height={242}
             priority
+            loader={({ src }) => (src ? src : '/og-image.png')}
           />
         </div>
       </div>

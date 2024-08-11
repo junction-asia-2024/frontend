@@ -4,13 +4,15 @@ import { useState } from 'react';
 import useKakaoLoader from '@/hooks/useKakaoLoader';
 import { Map, MapMarker } from 'react-kakao-maps-sdk';
 import toast from 'react-hot-toast';
+import { useMutation } from '@tanstack/react-query';
+import customAxios from '@/lib/axios';
 
 type DetailInformationProps = {
   state: FlowState;
   next: () => void;
   context: FlowContext;
   setUrl: (url: string) => void;
-  setLocation: (location: { lat: number; lng: number }) => void;
+  setId: (id: number) => void;
   handleOpen: () => void;
 };
 
@@ -19,19 +21,46 @@ const DetailInformation = ({
   next,
   context,
   setUrl,
-  setLocation,
+  setId,
   handleOpen,
 }: DetailInformationProps) => {
   const [open, setOpen] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
 
   const handleClose = () => {
     setOpen(false);
   };
 
-  const handleImageUpload = (file: File) => {
-    setFile(file);
+  const handleImageUpload = (url: string) => {
+    setUrl(url);
   };
+
+  const createMutation = useMutation({
+    mutationFn: () => {
+      return customAxios({
+        method: 'POST',
+        url: '/api/complaints',
+        data: {
+          file: context.img,
+          location: context.address,
+          latitude: context.location?.lat || 33.450701,
+          longitude: context.location?.lng || 126.570667,
+          classname: context.complaintType,
+        },
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }).then((res) => res.data);
+    },
+    onSuccess: (data) => {
+      setId(data.id);
+      toast.success('민원이 접수되었습니다 😊');
+      next();
+    },
+    onError: (error) => {
+      console.error(error);
+      toast.error('민원접수에 실패했어요. 다시 시도해 주세요.');
+    },
+  });
 
   useKakaoLoader();
   return (
@@ -124,12 +153,18 @@ const DetailInformation = ({
         </div>
       </div>
       <Button
-        onClick={() => {
-          if (!file) {
+        onClick={async () => {
+          if (!context.img) {
             toast.error('사진을 등록해주세요');
             return;
           }
-          next();
+
+          if (!context.location) {
+            toast.error('위치를 확정해주세요');
+            return;
+          }
+
+          await createMutation.mutate();
         }}
       >
         민원 등록하기

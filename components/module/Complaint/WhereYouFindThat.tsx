@@ -6,13 +6,23 @@ import useKakaoLoader from '@/hooks/useKakaoLoader';
 import { Map, MapMarker } from 'react-kakao-maps-sdk';
 import { Box, Modal } from '@mui/material';
 import { modalStyle } from '@/style/modal';
+import customAxios from '@/lib/axios';
+
+const complaintTypeMap: {
+  [key: string]: string;
+} = {
+  pothole: '포트홀',
+  crack: '크랙',
+  banner: '배너',
+  trash: '쓰레기',
+  vehicle: '불법주정차',
+};
 
 type WhereYouFindThatProps = {
   state: FlowState;
   next: () => void;
   context: FlowContext;
-  setContext: (address: string) => void;
-  setLocation: (location: { lat: number; lng: number }) => void;
+  setContext: (address: string, location: { lat: number; lng: number }) => void;
   handleOpen: () => void;
 };
 
@@ -21,7 +31,6 @@ const WhereYouFindThat = ({
   next,
   context,
   setContext,
-  setLocation,
   handleOpen,
 }: WhereYouFindThatProps) => {
   const [open, setOpen] = useState(false);
@@ -50,7 +59,7 @@ const WhereYouFindThat = ({
         >
           어디에서
           <br />
-          {context.complaintType}을(를) 발견하셨나요?
+          {complaintTypeMap[context.complaintType]}을(를) 발견하셨나요?
         </div>
         <Input
           value={context.address}
@@ -109,15 +118,14 @@ const WhereYouFindThat = ({
             autoClose={false}
             onComplete={async ({ address }) => {
               // address, zonecode
-              setContext(address);
-              const result = await axios
-                .get('/api/geo', {
+              const result = await customAxios
+                .get('/api/location', {
                   params: {
                     address,
                   },
                 })
                 .then((res) => res.data);
-              setLocation({
+              setContext(address, {
                 lat: parseFloat(result.lat),
                 lng: parseFloat(result.lng),
               });

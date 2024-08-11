@@ -1,35 +1,91 @@
 import styled from '@emotion/styled';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { useQuery } from '@tanstack/react-query';
+import customAxios from '@/lib/axios';
 
 const COMPLAINT_LIST: {
-  src: string;
-  category: '크랙' | '포트홀' | '배너';
+  id: number;
+  longitude: string;
+  time: string;
   address: string;
-  status: string;
+  file_url: string;
 }[] = [
   {
-    src: '/images/sample/crack.png',
-    category: '크랙',
-    address: '서울시 강남구 역삼동 123-456',
-    status: '처리중',
+    id: 38476,
+    longitude: '129.3707766',
+    time: '2024-06-02T22:43:22',
+    address: '경상북도 포항시 남구 해도동',
+    file_url: 'https://d1m84t8yekat2i.cloudfront.net/pre-images/0000038476',
   },
   {
-    src: '/images/sample/crack.png',
-    category: '포트홀',
-    address: '서울시 강남구 역삼동 123-456',
-    status: '처리완료',
+    id: 38524,
+    longitude: '129.3688293',
+    time: '2024-06-02T23:38:10',
+    address: '경상북도 포항시 남구 해도동',
+    file_url: 'https://d1m84t8yekat2i.cloudfront.net/pre-images/0000038524',
   },
   {
-    src: '/images/sample/crack.png',
-    category: '배너',
-    address: '서울시 강남구 역삼동 123-456',
-    status: '처리중',
+    id: 38526,
+    longitude: '129.3650239',
+    time: '2024-06-02T23:43:29',
+    address: '경상북도 포항시 남구 대도동',
+    file_url: 'https://d1m84t8yekat2i.cloudfront.net/pre-images/0000038526',
+  },
+  {
+    id: 38529,
+    longitude: '129.3443347',
+    time: '2024-06-02T23:49:30',
+    address: '경상북도 포항시 남구 대잠동',
+    file_url: 'https://d1m84t8yekat2i.cloudfront.net/pre-images/0000038529',
+  },
+  {
+    id: 38548,
+    longitude: '129.3666875',
+    time: '2024-06-03T00:11:01',
+    address: '경상북도 포항시 남구 대도동',
+    file_url: 'https://d1m84t8yekat2i.cloudfront.net/pre-images/0000038548',
+  },
+  {
+    id: 38560,
+    longitude: '129.3561243',
+    time: '2024-06-03T00:34:43',
+    address: '경상북도 포항시 남구 대도동',
+    file_url: 'https://d1m84t8yekat2i.cloudfront.net/pre-images/0000038560',
+  },
+  {
+    id: 38564,
+    longitude: '129.3456806',
+    time: '2024-06-03T00:39:40',
+    address: '경상북도 포항시 남구 대잠동',
+    file_url: 'https://d1m84t8yekat2i.cloudfront.net/pre-images/0000038564',
+  },
+  {
+    id: 38617,
+    longitude: '129.3388873',
+    time: '2024-06-03T01:34:02',
+    address: '경상북도 포항시 남구 이동',
+    file_url: 'https://d1m84t8yekat2i.cloudfront.net/pre-images/0000038617',
+  },
+  {
+    id: 38623,
+    longitude: '129.3419582',
+    time: '2024-06-03T01:37:00',
+    address: '경상북도 포항시 남구 대잠동',
+    file_url: 'https://d1m84t8yekat2i.cloudfront.net/pre-images/0000038623',
+  },
+  {
+    id: 38625,
+    longitude: '129.3421863',
+    time: '2024-06-03T01:37:25',
+    address: '경상북도 포항시 남구 대잠동',
+    file_url: 'https://d1m84t8yekat2i.cloudfront.net/pre-images/0000038625',
   },
 ];
 
 type ComplaintBottomSheetProps = {
   open: boolean;
+  context: FlowContext;
   onClose: () => void;
   setContext: (id: number) => void;
   next: (state?: FlowState) => void;
@@ -37,22 +93,42 @@ type ComplaintBottomSheetProps = {
 
 const ComplaintBottomSheet = ({
   open,
+  context,
   onClose,
   setContext,
   next,
 }: ComplaintBottomSheetProps) => {
-  const [data, setData] = useState<
+  const [list, setList] = useState<
     {
-      category: '크랙' | '포트홀' | '배너';
+      id: number;
+      longitude: string;
+      time: string;
       address: string;
-      status: string;
+      file_url: string;
     }[]
   >([]);
   const [searchString, setSearchString] = useState('');
 
+  const { data } = useQuery({
+    queryKey: ['detect', searchString],
+    queryFn: () => {
+      return customAxios({
+        method: 'GET',
+        url: '/api/detects',
+        params: {
+          latitude: context.location?.lat || 33.450701,
+          longitude: context.location?.lng || 126.570667,
+        },
+      }).then((res) => res.data);
+    },
+    enabled: open && !!context.location,
+  });
+
   useEffect(() => {
-    setData(COMPLAINT_LIST);
-  }, []);
+    if (data) {
+      setList(data);
+    }
+  }, [data]);
 
   if (!open) {
     return null;
@@ -84,19 +160,17 @@ const ComplaintBottomSheet = ({
           >
             <rect width="54" height="5" rx="2" fill="#E9ECEF" />
           </svg>
-          내 주변 문제 {data.length}개
+          내 주변 문제 {list.length}개
         </div>
         <div
           style={{
             width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            overflowY: 'scroll',
           }}
         >
-          {COMPLAINT_LIST.filter((complaint) => {
-            if (searchString === '') {
-              return true;
-            }
-            return complaint.address.includes(searchString);
-          }).map((complaint, index) => (
+          {list.map((complaint, index) => (
             <ComplaintItem
               key={index}
               onClick={() => {
@@ -112,10 +186,11 @@ const ComplaintBottomSheet = ({
                 }}
               >
                 <Image
-                  src={complaint.src}
+                  src={complaint.file_url}
                   alt={complaint.address}
                   fill
                   sizes="150px"
+                  loader={({ src }) => (src ? src : '/og-image.png')}
                 />
               </div>
               <div
@@ -152,7 +227,7 @@ const ComplaintBottomSheet = ({
                     padding: '2px 6px',
                   }}
                 >
-                  {complaint.status}
+                  {complaint.time.split('T')[0]}
                 </div>
               </div>
             </ComplaintItem>
