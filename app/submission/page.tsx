@@ -39,7 +39,6 @@ const SubmissionPage = () => {
           next={flowProps.next}
           context={flowProps.flowContext}
           setContext={flowProps.setAddress}
-          setLocation={flowProps.setLocation}
           handleOpen={handleOpen}
         />
       ),
@@ -49,7 +48,7 @@ const SubmissionPage = () => {
           next={flowProps.next}
           context={flowProps.flowContext}
           setUrl={flowProps.setUrl}
-          setLocation={flowProps.setLocation}
+          setId={flowProps.setId}
           handleOpen={handleOpen}
         />
       ),
@@ -61,7 +60,7 @@ const SubmissionPage = () => {
           setContext={flowProps.setForm}
           initialize={() => {
             flowProps.setComplaintType('');
-            flowProps.setAddress('');
+            flowProps.setAddress('', { lat: 33.450701, lng: 126.570667 });
             flowProps.setUrl('');
             flowProps.setLocation({
               lat: 35.8481599061928,
@@ -115,6 +114,7 @@ const SubmissionPage = () => {
       {getComponent(flowState)}
       <ComplaintBottomSheet
         open={complaintBottomSheetOpen}
+        context={flowProps.flowContext}
         onClose={() => setComplaintBottomSheetOpen(false)}
         next={flowProps.next}
         setContext={flowProps.setId}
