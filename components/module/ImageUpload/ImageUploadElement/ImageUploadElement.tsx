@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import styled from '@emotion/styled';
 import { Box, Typography } from '@mui/material';
 import Image from 'next/image';
+import customAxios from '@/lib/axios';
+import toast from 'react-hot-toast';
 
 const ImageUploadElement = ({
   imageDocument,
@@ -12,7 +14,7 @@ const ImageUploadElement = ({
     source: File | null;
     name: string;
   };
-  onChange?: (file: File) => void;
+  onChange?: (url: string) => void;
   setOverLimit?: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -31,18 +33,14 @@ const ImageUploadElement = ({
     });
   };
 
+  // /api/users/pictures
+
   useEffect(() => {
     if (imageDocument) {
       const { source } = imageDocument;
       setFile(source);
     }
   }, [imageDocument]);
-
-  useEffect(() => {
-    if (onChange && file) {
-      onChange(file);
-    }
-  }, [file, onChange]);
 
   return (
     <Box
@@ -157,7 +155,26 @@ const ImageUploadElement = ({
 
               setFile(file);
 
-              await encodeFileToBase64(file);
+              const formData = new FormData();
+              formData.append('file', file);
+
+              // /api/users/pictures
+              const result = await customAxios('/api/complaints/files', {
+                method: 'POST',
+                data: formData,
+                headers: {
+                  'Content-Type': 'multipart/form-data',
+                },
+              }).then((res) => res.data);
+
+              if (result) {
+                setMyUploadUrl(result.image_url);
+                onChange?.(result.image_url);
+                toast.success('이미지 업로드에 성공했습니다 😆');
+              } else {
+                toast.error('이미지 업로드에 실패했습니다 😥');
+                await encodeFileToBase64(file);
+              }
             }
           }}
         />
@@ -184,7 +201,7 @@ const ImageUploadElement = ({
             width={120}
             height={120}
             alt="my upload url"
-            loader={({ src }) => (src ? src : '/assets/black-logo.png')}
+            loader={({ src }) => (src ? src : '/og-image.png')}
           />
         )}
       </Box>

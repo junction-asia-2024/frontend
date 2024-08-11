@@ -9,7 +9,7 @@ const ImageUpload = ({
 }: {
   open: boolean;
   onClose: () => void;
-  onChange: (file: File) => void;
+  onChange: (url: string) => void;
 }) => {
   const [overLimit, setOverLimit] = useState(false);
 
