@@ -1,38 +1,16 @@
 'use client';
 import Header from '@/components/layout/Header';
 import styled from '@emotion/styled';
-import { Box, Grid, MenuItem, Select, Typography } from '@mui/material';
+import { Box, Grid, MenuItem, Select } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { useEffect, useState } from 'react';
 import { Line, Bar, Pie } from 'react-chartjs-2';
 import { marked } from 'marked';
-import parse from 'html-react-parser';
 import { useQuery } from '@tanstack/react-query';
 import customAxios from '@/lib/axios';
 import FormControl from '@mui/material/FormControl';
-import BarLoader from '@/components/element/bar';
 import Bounce from '@/components/element/bounce';
 import Typewriter from '@/components/effect/Typewriter';
-
-const SUMMARY_DUMMY = `최종 요약:
-1. **전체 분석 결과 요약:**
-   - 손상 사건은 경상북도 포항시 남구를 중심으로 발생.
-   - 송도동, 대잠동, 상도동 등에서 손상 사건 집중적 발생.
-   - 대부분 오후 시간대에 사건이 발생.
-
-2. **주요 패턴 및 트렌드 요약:**
-   - 오후 시간대(12시 이후)에 손상 사건이 집중 발생.
-   
-3. **지역별 도로 손상 정보 요약:**
-   - 연일읍, 송도동, 대잠동 등에서 손상 사건 발생.
-   
-4. **시간대별 발생 정보 요약:**
-   - 오후 4시~6시에 가장 많은 사건 발생.
-   - 7월에 사건이 많이 발생.
-
-5. **권장 사항 및 개선 방안 요약:**
-   - 손상 사건 집중 지역의 도로 상태 모니터링 및 추가 점검 강화 필요.
-   - 오후 시간대에 도로 관리 강화 및 정기 점검 시행 권장.`;
 
 const DashboardPage = () => {
   const [linearList, setLinearList] = useState<
@@ -58,15 +36,9 @@ const DashboardPage = () => {
   const [rows1, setRows1] = useState<
     {
       classname: string;
+      count: number;
       location: string;
-      id: number;
-      longitude: number;
-      image_link: string;
-      description: string;
-      latitude: number;
-      phone: string;
       status: string;
-      created_at: string;
     }[]
   >([]);
   const [rows2, setRows2] = useState<
@@ -131,21 +103,24 @@ const DashboardPage = () => {
 
   const columns2: GridColDef<(typeof rows2)[number]>[] = [
     {
-      field: 'no',
+      field: 'id',
       headerName: 'No.',
       headerAlign: 'center',
       align: 'center',
       width: 70,
     },
     {
-      field: 'regDate',
+      field: 'created_at',
       headerName: '날짜',
       headerAlign: 'center',
       align: 'center',
       width: 100,
+      renderCell({ row }) {
+        return <span>{row.created_at.split('T')[0]}</span>;
+      },
     },
     {
-      field: 'content',
+      field: 'location',
       headerName: '내용',
       headerAlign: 'center',
       align: 'left',
@@ -246,7 +221,27 @@ const DashboardPage = () => {
 
   useEffect(() => {
     if (complaintData) {
-      setRows1(complaintData);
+      setRows1(
+        complaintData.map(
+          (
+            item: {
+              classname: string;
+              count: number;
+              location: string;
+              status: string;
+            },
+            index: number,
+          ) => {
+            return {
+              id: index,
+              classname: item.classname,
+              count: item.count,
+              location: item.location,
+              status: item.status,
+            };
+          },
+        ),
+      );
     }
   }, [complaintData]);
 
@@ -524,6 +519,18 @@ const DashboardPage = () => {
               slots={{
                 pagination: () => null,
                 footer: () => null,
+              }}
+              onRowClick={async (params) => {
+                const result = await customAxios({
+                  method: 'GET',
+                  url: `/api/complaints/detail`,
+                  params: {
+                    classname: complaintType,
+                    location: params.row.location,
+                  },
+                }).then((res) => res.data);
+
+                result && setRows2(result);
               }}
             />
           </Box>
