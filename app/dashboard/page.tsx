@@ -1,17 +1,18 @@
 'use client';
 import Header from '@/components/layout/Header';
 import styled from '@emotion/styled';
-import { Box, Grid, Typography } from '@mui/material';
+import { Box, Grid, MenuItem, Select, Typography } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { useEffect, useState } from 'react';
-import Accordion from '@mui/material/Accordion';
-import AccordionDetails from '@mui/material/AccordionDetails';
-import AccordionSummary from '@mui/material/AccordionSummary';
 import { Line, Bar, Pie } from 'react-chartjs-2';
 import { marked } from 'marked';
 import parse from 'html-react-parser';
-import { debounce } from 'lodash';
-import useDebounce from '@/hooks/useDebounce';
+import { useQuery } from '@tanstack/react-query';
+import customAxios from '@/lib/axios';
+import FormControl from '@mui/material/FormControl';
+import BarLoader from '@/components/element/bar';
+import Bounce from '@/components/element/bounce';
+import Typewriter from '@/components/effect/Typewriter';
 
 const SUMMARY_DUMMY = `최종 요약:
 1. **전체 분석 결과 요약:**
@@ -34,50 +35,81 @@ const SUMMARY_DUMMY = `최종 요약:
    - 오후 시간대에 도로 관리 강화 및 정기 점검 시행 권장.`;
 
 const DashboardPage = () => {
-  const [chat, setChat] = useState<string>('');
+  const [linearList, setLinearList] = useState<
+    {
+      hour: string;
+      count: number;
+    }[]
+  >([]);
+  const [barList, setBarList] = useState<
+    {
+      day: string;
+      count: number;
+    }[]
+  >([]);
+  const [pieList, setPieList] = useState<
+    {
+      status: string;
+      count: number;
+      percentage: number;
+    }[]
+  >([]);
+
   const [rows1, setRows1] = useState<
     {
+      classname: string;
+      location: string;
       id: number;
-      category: string;
-      address: string;
-      count: number | null;
+      longitude: number;
+      image_link: string;
+      description: string;
+      latitude: number;
+      phone: string;
       status: string;
+      created_at: string;
     }[]
   >([]);
   const [rows2, setRows2] = useState<
     {
+      classname: string;
+      location: string;
       id: number;
-      regDate: string;
-      content: string;
+      longitude: number;
+      image_link: string;
+      description: string;
+      latitude: number;
       phone: string;
+      status: string;
+      created_at: string;
     }[]
   >([]);
   const [expanded, setExpanded] = useState<string | false>(false);
-  const [searchString, setSearchString] = useState<string>('');
+  const [complaintType, setComplaintType] = useState<string>('crack');
 
-  const debounceSearchString = useDebounce(searchString, 300);
+  const [gptSummary, setGptSummary] = useState<string>('');
 
   const handleChange =
     (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
       setExpanded(isExpanded ? panel : false);
     };
+
   const columns1: GridColDef<(typeof rows1)[number]>[] = [
     {
-      field: 'category',
+      field: 'classname',
       headerName: '종류',
       align: 'center',
       headerAlign: 'center',
       width: 70,
     },
     {
-      field: 'address',
+      field: 'location',
       headerName: '위치',
       align: 'left',
       headerAlign: 'center',
       flex: 1,
     },
     {
-      field: 'age',
+      field: 'count',
       headerName: '민원 개수',
       type: 'number',
       align: 'center',
@@ -130,79 +162,169 @@ const DashboardPage = () => {
     },
   ];
 
-  useEffect(() => {
-    const rows = [
-      {
-        id: 1,
-        category: '도로',
-        address: '포항시 남구 송도 동',
-        count: 3,
-        status: '처리중',
-      },
-      {
-        id: 2,
-        category: '도로',
-        address: '포항시 남구 대잠동',
-        count: 2,
-        status: '처리중',
-      },
-      {
-        id: 3,
-        category: '도로',
-        address: '포항시 남구 상도동',
-        count: 10,
-        status: '처리중',
-      },
-      {
-        id: 4,
-        category: '도로',
-        address: '포항시 남구 연일읍',
-        count: 5,
-        status: '처리중',
-      },
-      {
-        id: 5,
-        category: '도로',
-        address: '포항시 남구 상도동',
-        count: 4,
-        status: '처리중',
-      },
-    ];
-    setRows1(rows);
-  }, []);
+  function removeHtmlTags(text: string): string {
+    const clean = /<.*?>/g;
+    return text.replace(clean, '');
+  }
+
+  const {
+    data: gptData,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ['gpt'],
+    queryFn: () => {
+      return customAxios({
+        method: 'GET',
+        url: '/api/gpt',
+      }).then((res) => res.data);
+    },
+  });
+
+  const { data: complaintData } = useQuery({
+    queryKey: ['complaint', complaintType],
+    queryFn: () => {
+      return customAxios({
+        method: 'GET',
+        url: '/api/complaints',
+        params: {
+          classname: complaintType,
+          skip: 0,
+          limit: 100,
+        },
+      }).then((res) => res.data);
+    },
+  });
+
+  const { data: linearData } = useQuery({
+    queryKey: ['chart', 'linear'],
+    queryFn: () => {
+      return customAxios({
+        method: 'GET',
+        url: '/api/chart/linear',
+      }).then((res) => res.data);
+    },
+  });
+
+  const { data: barData } = useQuery({
+    queryKey: ['chart', 'bar'],
+    queryFn: () => {
+      return customAxios({
+        method: 'GET',
+        url: '/api/chart/stick',
+        params: {
+          start_date: '2021-08-05',
+          end_date: '2024-08-11',
+        },
+      }).then((res) => res.data);
+    },
+  });
+
+  const { data: pieData } = useQuery({
+    queryKey: ['chart', 'pie'],
+    queryFn: () => {
+      return customAxios({
+        method: 'GET',
+        url: '/api/chart/pie',
+        params: {
+          start_date: '2021-08-01',
+          end_date: '2024-08-31',
+        },
+      }).then((res) => res.data);
+    },
+  });
 
   useEffect(() => {
-    const markdown = async () => {
-      setChat(await marked(SUMMARY_DUMMY));
+    const markdown = async (chat: string) => {
+      setGptSummary(await marked(chat));
     };
 
-    markdown();
-  }, [chat]);
+    if (gptData) {
+      markdown(gptData);
+    }
+  }, [gptData]);
+
+  useEffect(() => {
+    if (complaintData) {
+      setRows1(complaintData);
+    }
+  }, [complaintData]);
+
+  useEffect(() => {
+    if (linearData) {
+      setLinearList(linearData);
+    }
+  }, [linearData]);
+
+  useEffect(() => {
+    if (barData) {
+      setBarList(barData);
+    }
+  }, [barData]);
+
+  useEffect(() => {
+    if (pieData) {
+      setPieList(pieData);
+    }
+  }, [pieData]);
   return (
     <Container>
       <Header display={'block'} />
-      <Accordion
-        expanded={expanded === 'panel1'}
-        onChange={handleChange('panel1')}
-        sx={{
-          width: '100%',
-          border: '1px solid #d9d9d9',
-          borderRadius: '4px',
-          boxShadow: 'none',
-          ':before': {
-            display: 'none',
-          },
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px',
         }}
       >
-        <AccordionSummary
-          expandIcon={<ExpandMoreIcon />}
-          aria-controls="panel1bh-content"
-          id="panel1bh-header"
+        <div
+          style={{
+            fontSize: '24px',
+          }}
         >
-          <Typography sx={{ flexShrink: 0 }}>AI 요약</Typography>
-        </AccordionSummary>
-        <AccordionDetails>{parse(chat)}</AccordionDetails>
-      </Accordion>
+          AI 요약
+        </div>
+        <Box
+          sx={{
+            width: '100%',
+            border: '1px solid #d9d9d9',
+            borderRadius: '4px',
+            boxShadow: 'none',
+            ':before': {
+              display: 'none',
+            },
+            minHeight: '200px',
+            maxHeight: '400px',
+            height: 'fit-content',
+            overflow: 'auto',
+            padding: '20px',
+            lineHeight: '1.5',
+          }}
+        >
+          {isLoading ? (
+            <div
+              style={{
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '10px',
+              }}
+            >
+              <Bounce width={35} height={35} /> 데이터를 요약하고 있어요! 😁
+            </div>
+          ) : (
+            <Typewriter
+              typingSpeed={20}
+              textArray={[removeHtmlTags(gptSummary)]}
+              onComplete={() => {
+                console.log('complete');
+              }}
+            />
+          )}
+        </Box>
+      </div>
       <div
         style={{
           height: 'fit-content',
@@ -226,7 +348,7 @@ const DashboardPage = () => {
                     display: false,
                   },
                   title: {
-                    display: true,
+                    display: false,
                     text: '선형 차트',
                     font: {
                       size: 20,
@@ -235,19 +357,11 @@ const DashboardPage = () => {
                 },
               }}
               data={{
-                labels: [
-                  'January',
-                  'February',
-                  'March',
-                  'April',
-                  'May',
-                  'June',
-                  'July',
-                ],
+                labels: linearList.map((item) => item.hour),
                 datasets: [
                   {
                     label: 'My First Dataset',
-                    data: [65, 59, 80, 81, 56, 55, 40],
+                    data: linearList.map((item) => item.count),
                     fill: false,
                     borderColor: 'rgb(75, 192, 192)',
                     tension: 0.1,
@@ -264,7 +378,7 @@ const DashboardPage = () => {
                     display: false,
                   },
                   title: {
-                    display: true,
+                    display: false,
                     text: '막대 차트',
                     font: {
                       size: 20,
@@ -278,11 +392,11 @@ const DashboardPage = () => {
                 },
               }}
               data={{
-                labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+                labels: barList.map((item) => item.day),
                 datasets: [
                   {
                     label: '# of Votes',
-                    data: [12, 19, 3, 5, 2, 3],
+                    data: barList.map((item) => item.count),
                     backgroundColor: [
                       'rgba(255, 99, 132, 0.2)',
                       'rgba(54, 162, 235, 0.2)',
@@ -313,7 +427,7 @@ const DashboardPage = () => {
                     display: false,
                   },
                   title: {
-                    display: true,
+                    display: false,
                     text: '파이 차트',
                     font: {
                       size: 20,
@@ -322,11 +436,11 @@ const DashboardPage = () => {
                 },
               }}
               data={{
-                labels: ['Red', 'Blue', 'Yellow'],
+                labels: pieList.map((item) => item.status),
                 datasets: [
                   {
-                    label: '# of Votes',
-                    data: [300, 50, 100],
+                    label: '# of Status',
+                    data: pieList.map((item) => item.count),
                     backgroundColor: [
                       'rgba(255, 99, 132, 0.2)',
                       'rgba(54, 162, 235, 0.2)',
@@ -381,58 +495,31 @@ const DashboardPage = () => {
             >
               유지보수 필요건
             </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                border: '1px solid #D9D9D9',
-                padding: '4px 7px',
-              }}
-            >
-              <input
-                style={{
-                  width: '230px',
+            <FormControl sx={{ m: 1, minWidth: 120 }}>
+              <Select
+                value={complaintType}
+                onChange={(e) => setComplaintType(e.target.value)}
+                displayEmpty
+                inputProps={{ 'aria-label': 'Without label' }}
+                sx={{
                   outline: 'none',
-                  fontSize: '12px',
+                  borderRadius: '4px',
+                  '.MuiSelect-select': {
+                    padding: '4px 8px',
+                  },
                 }}
-                placeholder="검색어를 입력하세요"
-                value={searchString}
-                onChange={(e) => setSearchString(e.target.value)}
-              />
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
               >
-                <mask
-                  id="mask0_102_304"
-                  style={{
-                    maskType: 'alpha',
-                  }}
-                  maskUnits="userSpaceOnUse"
-                  x="0"
-                  y="0"
-                  width="24"
-                  height="24"
-                >
-                  <rect width="24" height="24" fill="#D9D9D9" />
-                </mask>
-                <g mask="url(#mask0_102_304)">
-                  <path
-                    d="M19.6 21L13.3 14.7C12.8 15.1 12.225 15.4167 11.575 15.65C10.925 15.8833 10.2333 16 9.5 16C7.68333 16 6.14583 15.3708 4.8875 14.1125C3.62917 12.8542 3 11.3167 3 9.5C3 7.68333 3.62917 6.14583 4.8875 4.8875C6.14583 3.62917 7.68333 3 9.5 3C11.3167 3 12.8542 3.62917 14.1125 4.8875C15.3708 6.14583 16 7.68333 16 9.5C16 10.2333 15.8833 10.925 15.65 11.575C15.4167 12.225 15.1 12.8 14.7 13.3L21 19.6L19.6 21ZM9.5 14C10.75 14 11.8125 13.5625 12.6875 12.6875C13.5625 11.8125 14 10.75 14 9.5C14 8.25 13.5625 7.1875 12.6875 6.3125C11.8125 5.4375 10.75 5 9.5 5C8.25 5 7.1875 5.4375 6.3125 6.3125C5.4375 7.1875 5 8.25 5 9.5C5 10.75 5.4375 11.8125 6.3125 12.6875C7.1875 13.5625 8.25 14 9.5 14Z"
-                    fill="#545454"
-                  />
-                </g>
-              </svg>
-            </div>
+                <MenuItem value={'crack'}>크랙</MenuItem>
+                <MenuItem value={'banner'}>배너</MenuItem>
+                <MenuItem value={'pothole'}>포트홀</MenuItem>
+                <MenuItem value={'vehicle'}>불법주정차</MenuItem>
+                <MenuItem value={'trash'}>쓰레기</MenuItem>
+              </Select>
+            </FormControl>
           </div>
           <Box sx={{ height: 294, width: '100%' }}>
             <DataGrid
-              rows={rows1.filter((row) =>
-                row.address.includes(debounceSearchString),
-              )}
+              rows={rows1}
               columns={columns1}
               slots={{
                 pagination: () => null,
