@@ -2,7 +2,6 @@
 import Header from '@/components/layout/Header';
 import customAxios from '@/lib/axios';
 import styled from '@emotion/styled';
-import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import useDebounce from '@/hooks/useDebounce';
 
@@ -57,42 +56,50 @@ const COMPLAINT_LIST: {
   },
 ];
 
+// "classname": "banner",
+// "location": "location0120",
+// "id": 12,
+// "longitude": 1.123,
+// "image_link": "il",
+// "description": "des",
+// "latitude": 1.3,
+// "phone": "01012345678",
+// "status": "W",
+// "created_at": "2024-08-11T01:21:17"
+
 const ComplaintPage = () => {
   const [complaintList, setComplaintList] = useState<
     {
-      regDate: string;
-      category: '크랙' | '포트홀' | '배너';
-      address: string;
-      status: string;
+      classname: string;
+      location: string;
+      id: number;
+      longitude: number;
+      image_link: string;
+      description: string;
+      latitude: number;
       phone: string;
+      status: string;
+      created_at: string;
     }[]
   >([]);
   const [searchString, setSearchString] = useState('');
 
   const debounceSearchString = useDebounce(searchString, 300);
 
-  const { data, refetch } = useQuery({
-    queryKey: ['complaint', debounceSearchString],
-    queryFn: () => {
-      return customAxios({
-        method: 'GET',
-        url: '/api/complaints',
-        params: {
-          phone: debounceSearchString,
-        },
-      }).then((res) => res.data);
-    },
-    enabled: debounceSearchString.length > 0,
-  });
+  const handleSearch = async () => {
+    const result = await customAxios({
+      method: 'GET',
+      url: '/api/complaints/phone',
+      params: {
+        phone: debounceSearchString,
+        skip: 0,
+        limit: 10,
+      },
+    }).then((res) => res.data);
 
-  const handleSearch = () => {
-    // 필터링 합니다...
-    const filteredList = COMPLAINT_LIST.filter((complaint) => {
-      return complaint.phone === searchString;
-    });
-
-    setComplaintList(filteredList);
+    setComplaintList(result);
   };
+
   return (
     <Main>
       <Header display={'block'} />
@@ -114,7 +121,7 @@ const ComplaintPage = () => {
           }}
           value={searchString}
           placeholder="전화번호를 입력하세요."
-          onKeyDown={(e) => {
+          onKeyUp={(e) => {
             if (e.key === 'Enter') {
               handleSearch();
             }
@@ -164,21 +171,21 @@ const ComplaintPage = () => {
                 flex: 0.5,
               }}
             >
-              {complaint.regDate}
+              {complaint.created_at.split('T')[0]}
             </div>
             <div
               style={{
                 flex: 0.5,
               }}
             >
-              {complaint.category}
+              {complaint.classname}
             </div>
             <div
               style={{
                 flex: 1,
               }}
             >
-              {complaint.address}
+              {complaint.description}
             </div>
             <div
               style={{
