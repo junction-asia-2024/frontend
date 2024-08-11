@@ -5,6 +5,32 @@ import Providers from './provider';
 export const metadata: Metadata = {
   title: '민원이지',
   description: '빠르고 확실한 민원은 민원이지',
+  openGraph: {
+    type: 'website',
+    locale: 'ko_KR',
+    url: 'http://minwon.site',
+    title: '민원이지',
+    description: '빠르고 확실한 민원은 민원이지',
+    images: [
+      {
+        url: 'http://minwon.site/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: '민원이지',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@mwez',
+    siteId: '1467726470533754880',
+    creatorId: '1467726470533754880',
+    creator: '@KOA',
+    title: '민원이지',
+    description: '빠르고 확실한 민원은 민원이지',
+    images: '',
+  },
+  generator: '민원이지',
 };
 
 export default function RootLayout({
