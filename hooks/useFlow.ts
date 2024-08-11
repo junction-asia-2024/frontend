@@ -8,7 +8,7 @@ const useFlow = (): {
   back: () => void;
   flowContext: FlowContext;
   setComplaintType: (type: string) => void;
-  setAddress: (address: string) => void;
+  setAddress: (address: string, location: { lat: number; lng: number }) => void;
   setForm: (form: { description: string; phone: string }) => void;
   setId: (id: number) => void;
   setLocation: (location: { lat: number; lng: number }) => void;
@@ -44,8 +44,11 @@ const useFlow = (): {
     setFlowContext({ ...flowContext, complaintType });
   };
 
-  const setAddress = (address: string) => {
-    setFlowContext({ ...flowContext, address });
+  const setAddress = (
+    address: string,
+    location: { lat: number; lng: number },
+  ) => {
+    setFlowContext({ ...flowContext, address, location });
   };
 
   const setForm = ({
