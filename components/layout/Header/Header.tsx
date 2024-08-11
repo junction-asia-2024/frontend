@@ -25,7 +25,13 @@ const Header = ({ display }: HeaderProps) => {
           window.location.href = '/';
         }}
       >
-        <Image src={'/images/mwez.png'} alt="" fill sizes="56px" />
+        <Image
+          src={'/images/mwez.png'}
+          alt=""
+          fill
+          sizes="56px"
+          loader={({ src }) => (src ? src : '/og-image.png')}
+        />
       </div>
     </Container>
   );

@@ -16,7 +16,7 @@ import {
   BarElement,
   ArcElement,
 } from 'chart.js';
-import Bar from '@/components/element/bar/Bar';
+import BarLoader from '@/components/element/bar/BarLoader';
 
 ChartJS.register(
   RadialLinearScale,
@@ -134,7 +134,7 @@ const Providers = ({ children }: { children: React.ReactNode }) => {
           backgroundColor: '#fff',
         }}
       >
-        <Bar width={60} height={60} />
+        <BarLoader width={30} height={30} />
       </div>
     );
   }

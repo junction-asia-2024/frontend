@@ -90,6 +90,7 @@ export default function Home() {
             alt="민원이지"
             fill
             sizes="223px"
+            loader={({ src }) => (src ? src : '/og-image.png')}
           />
           <div
             style={{
@@ -105,6 +106,7 @@ export default function Home() {
               alt="민원이지"
               fill
               sizes="104px"
+              loader={({ src }) => (src ? src : '/og-image.png')}
             />
           </div>
         </div>
