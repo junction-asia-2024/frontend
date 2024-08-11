@@ -1,18 +1,21 @@
 import styled from '@emotion/styled';
 
-type BarProps = {
+type BarLoaderProps = {
   width?: number;
   height?: number;
 };
 
-const Bar = ({ width = 45, height = 45 }: BarProps) => {
-  return <Container />;
+const BarLoader = ({ width = 45, height = 45 }: BarLoaderProps) => {
+  return <Container width={width} />;
 };
 
-export default Bar;
+export default BarLoader;
 
-const Container = styled.div`
-  width: 45px;
+const Container = styled.div<{
+  width?: number;
+  height?: number;
+}>`
+  width: ${(props) => props.width}px;
   aspect-ratio: 0.75;
   --c: no-repeat linear-gradient(#000 0 0);
   background:
